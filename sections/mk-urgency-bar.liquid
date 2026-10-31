@@ -1,0 +1,75 @@
+{%- comment -%}
+  Merrykin urgency bar. Every countdown points at a real deadline set in the theme editor:
+  the sale end, the free-tee offer end and the Christmas shipping cutoff. Nothing resets per visitor.
+  When several messages are live they rotate every 5 seconds.
+{%- endcomment -%}
+{%- render 'mk-apple' -%}
+{%- if localization.country.iso_code == 'CA' -%}{%- assign tee_amount = 'CA$136' -%}{%- else -%}{%- assign tee_amount = '$100' -%}{%- endif -%}
+<div class="mk-bar" data-mk-bar
+  data-sale-start="{{ section.settings.sale_start }}"
+  data-sale-end="{{ section.settings.sale_end }}"
+  data-cutoff="{{ section.settings.cutoff }}"
+  data-tee-end="{{ section.settings.tee_end }}">
+  <p class="mk-bar__msg" data-phase="tee" hidden><a href="/products/personalized-family-christmas-cartoon-tee">{{ section.settings.msg_tee | replace: '[amount]', tee_amount }}</a> <span class="mk-bar__clock" data-to="tee-end"></span></p>
+  <p class="mk-bar__msg" data-phase="before">{{ section.settings.msg_before }}</p>
+  <p class="mk-bar__msg" data-phase="sale" hidden>{{ section.settings.msg_sale }} <span class="mk-bar__clock" data-to="sale-end"></span></p>
+  <p class="mk-bar__msg" data-phase="cutoff" hidden>{{ section.settings.msg_cutoff }} <span class="mk-bar__clock" data-to="cutoff"></span></p>
+  <p class="mk-bar__msg" data-phase="after" hidden>{{ section.settings.msg_after }}</p>
+</div>
+
+<style>
+  .mk-bar { background: {{ section.settings.bg }}; color: {{ section.settings.fg }}; text-align: center; padding: 11px 16px; font-weight: 400; font-size: 12px; letter-spacing: .01em; line-height: 1.35; }
+  .mk-bar p { margin: 0; }
+  .mk-bar a { color: inherit; text-decoration: none; }
+  .mk-bar__clock { display: inline-block; margin-left: 6px; color: #1F5C43; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mk-bar__clock:empty { display: none; }
+</style>
+
+<script>
+  (() => {
+    const bar = document.currentScript.previousElementSibling.previousElementSibling;
+    const t = (k) => Date.parse(bar.dataset[k]);
+    const saleStart = t('saleStart'), saleEnd = t('saleEnd'), cutoff = t('cutoff'), teeEnd = t('teeEnd');
+    let turn = 0;
+    const pad = (n) => String(n).padStart(2, '0');
+    const fmt = (ms) => {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+      return (d ? d + 'd ' : '') + pad(h) + ':' + pad(m) + ':' + pad(sec);
+    };
+    function tick() {
+      const now = Date.now();
+      const live = [];
+      if (now < teeEnd) live.push('tee');
+      if (now >= saleStart && now < saleEnd) live.push('sale');
+      live.push(now >= cutoff ? 'after' : (cutoff - now < 10 * 86400000) ? 'cutoff' : 'before');
+      const phase = live[Math.floor(turn++ / 5) % live.length];
+      bar.querySelectorAll('[data-phase]').forEach((el) => { el.hidden = el.dataset.phase !== phase; });
+      bar.querySelectorAll('[data-to]').forEach((el) => {
+        const target = el.dataset.to === 'sale-end' ? saleEnd : el.dataset.to === 'tee-end' ? teeEnd : cutoff;
+        el.textContent = target > now ? fmt(target - now) : '';
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Merrykin urgency bar",
+  "settings": [
+    { "type": "text", "id": "sale_start", "label": "Sale starts (ISO, with timezone)", "default": "2026-11-20T00:00:00-05:00" },
+    { "type": "text", "id": "sale_end", "label": "Sale ends (ISO, with timezone)", "default": "2026-12-01T23:59:59-05:00" },
+    { "type": "text", "id": "cutoff", "label": "Christmas shipping cutoff (ISO, with timezone)", "default": "2026-12-10T23:59:59-05:00" },
+    { "type": "text", "id": "tee_end", "label": "Free tee offer ends (ISO, with timezone)", "default": "2026-12-08T23:59:59-08:00" },
+    { "type": "text", "id": "msg_tee", "label": "Free tee offer ([amount] = $100 / CA$136)", "default": "Free personalized family tee on orders [amount]+ · ends in" },
+    { "type": "text", "id": "msg_before", "label": "Before the sale", "default": "Free shipping on all clothing & printed books · Order early for Christmas" },
+    { "type": "text", "id": "msg_sale", "label": "During the sale", "default": "Black Friday: free shipping on every order · ends in" },
+    { "type": "text", "id": "msg_cutoff", "label": "Last 10 days before cutoff", "default": "Christmas delivery: order within" },
+    { "type": "text", "id": "msg_after", "label": "After the cutoff", "default": "Too late to ship? Our e-gift card arrives instantly by email." },
+    { "type": "color", "id": "bg", "label": "Background", "default": "#F5F5F7" },
+    { "type": "color", "id": "fg", "label": "Text", "default": "#1D1D1F" }
+  ]
+}
+{% endschema %}
