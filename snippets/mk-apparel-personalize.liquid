@@ -1,0 +1,172 @@
+{%- comment -%}
+  Personalised apparel: photo -> Christmas cartoon (tee/sweatshirt/hoodie: kind 'scene', printed cut out on any colour)
+  or an all-over ugly-sweater front (kind 'sweater' = knitted in, 'sweater_cutout' = white sticker outline) in the
+  chosen Pattern. Watermarked preview; the approved id goes on the line item as _art and the order webhook sends it
+  to Printify. The approval sticks while the design key (kind + pattern) is unchanged, so sizes/colours can be added.
+{%- endcomment -%}
+{%- liquid
+  assign aop = false
+  assign socks = false
+  if product.tags contains 'personalized-socks'
+    assign socks = true
+  endif
+  if product.tags contains 'kind-aop'
+    assign aop = true
+  endif
+  assign garment = 'T-shirt'
+  if product.title contains 'Sweatshirt'
+    assign garment = 'crewneck sweatshirt'
+  elsif product.title contains 'Hoodie'
+    assign garment = 'hoodie'
+  endif
+  assign chart = 'tee'
+  if socks
+    assign chart = 'socks'
+  elsif aop and product.title contains 'Hoodie'
+    assign chart = 'uglyhoodie'
+  elsif aop
+    assign chart = 'uglysweater'
+  elsif garment == 'hoodie'
+    assign chart = 'hoodie'
+  elsif garment == 'crewneck sweatshirt'
+    assign chart = 'sweatshirt'
+  endif
+  assign blank = 'tee'
+  if product.title contains 'Hoodie'
+    assign blank = 'hoodie'
+  elsif aop or garment == 'crewneck sweatshirt'
+    assign blank = 'sweatshirt'
+  endif
+-%}
+<div class="mka" data-socks="{{ socks }}" data-aop="{{ aop }}" data-garment="{{ garment }}" data-blank="{{ blank }}">
+  {%- if socks -%}
+  <p class="mka__title">Make them yours: upload a photo of your pet</p>
+  <p class="mka__hint">A clear, close photo of their face works best. Two pets in one photo? Both go on the socks. We draw them as cute cartoons in Santa hats, repeated all over the socks.</p>
+  {%- else -%}
+  <p class="mka__title">Make it yours: upload a family photo</p>
+  <p class="mka__hint">A clear photo where every face is visible works best (people and pets welcome). No filters or sunglasses. {% if aop %}Pick your pattern and style above, and we put your crew right into the knit{% else %}We turn it into a cozy Christmas cartoon that prints on any colour{% endif %}, and you approve it before you buy.</p>
+  {%- endif -%}
+  {% if aop %}<p class="mka__hint"><b>Knitted in</b>: your crew is knitted right into the pattern, with no outline. <b>White cutout</b>: a bright full-colour cartoon with a white sticker-style outline. Pick the Style above; your preview shows exactly that style.</p>{% endif %}
+  {% if aop %}<label class="mka__tone"><input type="checkbox" class="mka__tonal" name="properties[Colour tone]" value="Matches sweater"> Knit my family in the sweater colours too (tonal look)</label>{% endif %}
+  <input class="mka__file" id="mka-photo" type="file" accept="image/*" aria-label="Family photo">
+  <input class="mka__input" id="mka-notes" type="text" maxlength="80" placeholder="Optional: e.g. include the cat, dad has a beard" aria-label="Notes about your photo">
+  <button type="button" class="button mka__go">Make my design</button>
+  <p class="mka__status" role="status" aria-live="polite"></p>
+  <div class="mka__preview" hidden>
+    <img alt="Your design preview (watermarked)" class="mka__img">
+    {%- if socks -%}<figure class="mka__mock mka__sockfig" aria-label="Your pattern on the socks"><img class="mka__sock" alt="Your pattern repeated down the sock (watermarked)"><figcaption>How the pattern repeats down each sock, front and back. Heel and toe are solid black.</figcaption></figure>{%- endif -%}
+    <figure class="mka__mock" aria-label="Your design on the garment"{% if socks %} hidden{% endif %}>
+      <div class="mka__stage">
+        <div class="mka__tint"></div>
+        <img class="mka__art" alt="">
+        <img class="mka__shade" alt="" src="https://dl.merrykin.com/blank/{{ blank }}.png" crossorigin="anonymous">
+      </div>
+      <figcaption>{% if aop %}How the front panel wraps the {{ blank | replace: 'sweatshirt', 'sweater' }}.{% else %}Shown at the real print size on an adult L: printed straight onto the fabric, no box or border.{% endif %} Change the colour above to see it on each one.</figcaption>
+    </figure>
+    <div class="mka__actions">
+      <button type="button" class="button mka__use">Love it, use this design</button>
+      <button type="button" class="button button-secondary mka__again">Try again</button>
+    </div>
+  </div>
+  <input type="hidden" name="properties[_art]" class="mka__artid" value="">
+  <input type="hidden" name="properties[Design]" class="mka__artlabel" value="">
+  {% render 'mk-size-chart', chart: chart %}
+  <p class="mka__fine">{% if socks %}Personalized socks can't be refunded or exchanged for size; damaged or misprinted? Free replacement. Photos are deleted after 30 days.{% else %}Family pack: 4 or more = 15% off, same design on every size. Sizes are unisex: check the size chart above. Personalized items can't be refunded or exchanged for size; damaged or misprinted? Free replacement. Photos are deleted after 30 days.{% endif %}</p>
+</div>
+<style>
+  .mka { margin: 14px 0; padding: 16px; border-radius: 14px; background: #fff; border: 2px dashed #D2D2D7; display: grid; gap: 8px; }
+  .mka__title { font-weight: 700; margin: 0; }
+  .mka__input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid #D2D2D7; font-size: 16px; }
+  .mka__hint, .mka__fine { font-size: 13px; color: #6E6E73; margin: 0; }
+  .mka__preview[hidden], .mka__tone[hidden] { display: none; }
+  .mka__tone { font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .mka__img { width: 100%; max-width: 380px; border-radius: 14px; display: block; margin: 6px auto; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
+  .mka__mock { margin: 6px auto 0; max-width: 380px; }
+  .mka__stage { position: relative; aspect-ratio: 1; border-radius: 14px; background: #F5F5F7; overflow: hidden; }
+  .mka__stage > * { position: absolute; }
+  .mka__tint, .mka__shade { inset: 0; width: 100%; height: 100%; }
+  .mka__tint { background: var(--mka-c, #fff); -webkit-mask: var(--mka-blank) center / contain no-repeat; mask: var(--mka-blank) center / contain no-repeat; }
+  .mka__shade { object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
+  /* print box on the chest, measured against Printify's own mockups (left/top/width in % of the square) */
+  .mka__art { left: calc(50% - var(--mka-w) / 2); top: var(--mka-t); width: var(--mka-w); }
+  .mka[data-blank="tee"] .mka__stage { --mka-t: 34%; --mka-w: 26%; }
+  .mka[data-blank="sweatshirt"] .mka__stage { --mka-t: 36%; --mka-w: 23%; }
+  .mka[data-blank="hoodie"] .mka__stage { --mka-t: 30.5%; --mka-w: 17%; }
+  .mka[data-aop="true"] .mka__art { inset: 0; width: 100%; height: 100%; object-fit: cover; -webkit-mask: var(--mka-blank) center / contain no-repeat; mask: var(--mka-blank) center / contain no-repeat; }
+  .mka__mock[hidden] { display: none; }
+  .mka__sockfig { display: grid; justify-items: center; }
+  .mka__sock { width: 96px; height: auto; border-radius: 40px 40px 14px 14px; box-shadow: 0 4px 18px rgba(0,0,0,.12); border-bottom: 34px solid #1D1D1F; }
+  .mka__mock figcaption { font-size: 12px; color: #6E6E73; text-align: center; margin-top: 6px; }
+  .mka__actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .mka__status { font-weight: 600; color: #1F5C43; margin: 0; }
+  .mka__status.is-err { color: #9B2F2F; }
+</style>
+<script>
+(() => {
+  const box = document.currentScript.previousElementSibling.previousElementSibling;
+  const form = document.querySelector('form[data-type="add-to-cart-form"]');
+  if (!form) return;
+  box.querySelectorAll('input[name^="properties"]').forEach(i => i.setAttribute('form', form.getAttribute('id')));
+  const $ = s => box.querySelector(s);
+  const variants = {{ product.variants | json }};
+  const PAT = { 'Classic Red': '', 'Evergreen': 'evergreen', 'Midnight Navy': 'navy', 'Candy Cane': 'candy', 'Simple Red': 'plainred', 'Simple Green': 'plaingreen', 'Simple Navy': 'plainnavy' };
+  const current = () => { const id = +(form.querySelector('input[name="id"]') || {}).value; return variants.find(v => v.id === id) || variants[0]; };
+  const design = () => { // what the preview must be made for
+    if (box.dataset.socks === 'true') return { kind: 'socks', pattern: '' };
+    if (box.dataset.aop !== 'true') return { kind: 'scene', pattern: '' };
+    const o = current().options || [], kind = o.includes('White cutout') ? 'sweater_cutout' : 'sweater', t = $('.mka__tonal');
+    t.closest('label').hidden = kind !== 'sweater'; t.disabled = kind !== 'sweater';
+    return { kind, pattern: PAT[o.find(x => x in PAT)] || '', tonal: kind === 'sweater' && t.checked };
+  };
+  const key = () => { const d = design(); return d.kind + ':' + d.pattern + ':' + !!d.tonal; };
+  // garment mockup: the plain blank tinted to the chosen colour, the design on the chest, the blank's folds multiplied on top
+  const COL = { 'White': '#F7F7F5', 'Black': '#232325', 'Red': '#B3172A', 'Forest Green': '#22402F', 'Navy': '#1F2842', 'Sport Grey': '#A9ABAE' };
+  const stage = $('.mka__stage');
+  stage.style.setProperty('--mka-blank', `url(https://dl.merrykin.com/blank/${box.dataset.blank}.png)`);
+  const tint = () => { const o = current().options || []; stage.style.setProperty('--mka-c', COL[o.find(x => x in COL)] || '#F7F7F5'); };
+  let tries = 0, approvedKey = '';
+  setInterval(tint, 600); tint();
+  setInterval(() => { // the design changed after approval: ask for a new preview
+    if (approvedKey && approvedKey !== key()) {
+      approvedKey = ''; $('.mka__artid').value = ''; $('.mka__artlabel').value = '';
+      const st = $('.mka__status'); st.textContent = 'You changed the pattern or style: make a new preview for it.'; st.classList.add('is-err');
+    }
+  }, 600);
+  async function shrink(file) {
+    const bmp = await createImageBitmap(file); const s = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.9).split(',')[1];
+  }
+  async function make() {
+    const f = $('#mka-photo').files[0], st = $('.mka__status');
+    st.classList.remove('is-err');
+    if (!f) { st.textContent = 'Please choose a photo first.'; st.classList.add('is-err'); return; }
+    if (tries >= 3) { st.textContent = 'You have made 3 designs from this photo. Pick your favorite or try another photo.'; return; }
+    st.textContent = 'Creating your design… about 30 seconds '; $('.mka__go').disabled = true;
+    try {
+      const r = await fetch('https://dl.merrykin.com/api/preview', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...design(), garment: box.dataset.garment, photo: await shrink(f), notes: $('#mka-notes').value }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Something went wrong');
+      window.mkUnsaved = true; tries++; $('.mka__art').src = j.cut || j.preview; $('.mka__img').src = j.preview; $('.mka__img').dataset.id = j.id; $('.mka__img').dataset.key = key(); $('.mka__preview').hidden = false;
+      if (box.dataset.socks === 'true') $('.mka__sock').src = 'https://dl.merrykin.com/sockpv/' + j.id;
+      st.textContent = 'Here it is! The watermark is only on the preview.';
+    } catch (e) { st.textContent = e.message; st.classList.add('is-err'); }
+    $('.mka__go').disabled = false;
+  }
+  $('#mka-photo').addEventListener('change', () => { tries = 0; });
+  $('.mka__go').addEventListener('click', make);
+  $('.mka__again').addEventListener('click', make);
+  $('.mka__use').addEventListener('click', () => {
+    if ($('.mka__img').dataset.key !== key()) { const st = $('.mka__status'); st.textContent = 'This preview was made for a different pattern or style: make a new one.'; st.classList.add('is-err'); return; }
+    approvedKey = key(); $('.mka__artid').value = $('.mka__img').dataset.id; $('.mka__artlabel').value = box.dataset.socks === 'true' ? 'Approved pet pattern' : 'Approved family design';
+    $('.mka__status').classList.remove('is-err'); $('.mka__status').textContent = 'Design approved. Pick a size and add to cart (add more sizes for the whole family).';
+  });
+  form.addEventListener('submit', (e) => {
+    if ($('.mka__artid').value) { window.mkUnsaved = false; return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    const st = $('.mka__status'); st.textContent = 'Upload a photo and approve your design first.'; st.classList.add('is-err'); st.scrollIntoView({ block: 'center' });
+  }, true);
+})();
+</script>
