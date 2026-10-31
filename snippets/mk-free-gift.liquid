@@ -1,10 +1,10 @@
 {%- comment -%}
   The signup gift: Christmas Fun + Christmas Animals free samples. Rendered ONLY after a successful email signup
-  (never listed on the free page). Links use the worker's private /gift/<key>/ path (KV cfg:giftkey); the block is
+  (never listed on the free page). Links use the worker's private /gift/<key>/ path (KV cfg:giftkey = shop metafield merrykin.giftkey, kept out of the code); the block is
   kept in localStorage 'mk_gift' so returning subscribers still see it on the free coloring pages.
   param: pitch = true shows the "what you get" teaser (no links) for visitors who haven't signed up.
 {%- endcomment -%}
-{%- assign G = 'https://dl.merrykin.com/gift/e2fe71303b55d6b936c8c10b/' -%}
+{%- assign G = 'https://dl.merrykin.com/gift/' | append: shop.metafields.merrykin.giftkey.value | append: '/' -%}
 {%- assign S = 'https://dl.merrykin.com/sample/' -%}
 {%- if pitch -%}
 <div class="mkg mkg--pitch">
