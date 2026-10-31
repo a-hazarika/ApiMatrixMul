@@ -1,0 +1,124 @@
+{%- comment -%}
+  Merrykin product-page trust box + a countdown to this product's REAL Christmas cutoff.
+  Cutoffs come from product metafields custom.cutoff_us / custom.cutoff_ca (ISO datetimes); default = Gelato
+  ornament/mug dates. Books also render the personalisation widget (moved above the add-to-cart button by JS).
+{%- endcomment -%}
+{%- liquid
+  assign mk_ca = false
+  if localization.country.iso_code == 'CA'
+    assign mk_ca = true
+  endif
+  assign is_book = false
+  assign is_pdf = false
+  if product.tags contains 'printable-pdf'
+    assign is_pdf = true
+  endif
+  if product.tags contains 'personalized-book' or is_pdf
+    assign is_book = true
+  endif
+  # each book has two listings: the printed book (<handle>) and the printable PDF (<handle>-printable-pdf)
+  assign printed_url = '/products/' | append: product.handle | remove: '-printable-pdf'
+  assign pdf_url = printed_url | append: '-printable-pdf'
+  if mk_ca
+    assign cutoff = product.metafields.custom.cutoff_ca.value | default: '2026-12-05T23:59:59-05:00'
+  else
+    assign cutoff = product.metafields.custom.cutoff_us.value | default: '2026-12-10T23:59:59-05:00'
+  endif
+  # a PDF has no shipping cutoff of its own: show its printed twin's
+  if is_pdf
+    assign twin_handle = printed_url | remove: '/products/'
+    assign twin = all_products[twin_handle]
+    if mk_ca
+      assign twin_cutoff = twin.metafields.custom.cutoff_ca.value | default: '2026-12-08T23:59:59-05:00'
+    else
+      assign twin_cutoff = twin.metafields.custom.cutoff_us.value | default: '2026-12-01T23:59:59-05:00'
+    endif
+    assign cutoff_label = twin_cutoff | date: '%b %-d'
+  else
+    assign cutoff_label = cutoff | date: '%b %-d'
+  endif
+-%}
+{%- if is_book -%}{% render 'mk-book-personalize', product: product %}{%- endif -%}
+{%- if product.tags contains 'personalized-apparel' -%}{% render 'mk-apparel-personalize', product: product %}{%- assign is_apparel = true -%}{%- endif -%}
+{%- if product.tags contains 'personalized-case' -%}{% render 'mk-case-personalize', product: product %}{%- assign is_apparel = true -%}{%- endif -%}
+<div class="mk-pdp" data-cutoff="{{ cutoff }}" data-book="{{ is_book }}" data-pdf-url="{{ pdf_url }}">
+  {%- if product.gift_card? -%}
+  <p class="mk-pdp__deadline"><strong>Delivered by email in seconds</strong>, to you or straight to them on the date you choose.</p>
+  <ul class="mk-pdp__list"><li>Spend it on anything at merrykin.com</li><li>Never expires</li><li>The perfect last-minute gift, even on Christmas Eve</li></ul>
+</div>
+{%- else -%}
+  {%- if is_pdf -%}
+  <p class="mk-pdp__deadline"><strong>Instant download</strong> right after checkout. Print at home as often as you like.<br>
+    <small>Want it printed and shipped? <a href="{{ printed_url }}">Get the printed book</a> (free shipping, order by {{ cutoff_label }} for Christmas)</small></p>
+  {%- else -%}
+  <p class="mk-pdp__deadline">Order within <span class="mk-pdp__clock"></span> for <strong>{% if is_book %}printed book {% endif %}Christmas delivery</strong><br>
+    <small>{% if mk_ca %}Canada{% else %}US{% endif %}: order by {{ cutoff_label }}{% if is_book %} · Prefer to print at home? <a href="{{ pdf_url }}">Printable PDF</a>, instant download{% endif %}</small></p>
+  {%- endif -%}
+  {%- unless is_book or is_apparel or product.tags contains 'memorial' -%}
+  <p class="mk-pdp__bundle"><strong>Make one for Mom &amp; your bestie too:</strong> 10% off 2 · <strong>20% off 3+</strong> (applied at checkout)</p>
+  {%- endunless -%}
+  {%- if is_book and is_pdf == false -%}
+  <p class="mk-pdp__bundle"><strong>Buy 3 printed books, get a free name pencil case</strong> <a href="/products/personalized-name-pencil-case">(see it)</a></p>
+  {%- endif -%}
+  <ul class="mk-pdp__list">
+    <li>See it before you pay: you approve your design first</li>
+    <li>Arrives damaged or misprinted? Free replacement</li>
+    {%- if product.tags contains 'pet-ornament' or product.tags contains 'friendsmas' -%}
+    <li>Actual size: 3" (76 mm) across, about the size of a cookie. Some photos show it enlarged so you can see the detail.</li>
+    {%- endif -%}
+    <li>{% if is_pdf %}Your personalized PDF is emailed to you in seconds{% elsif is_book %}Free shipping on printed books{% elsif product.tags contains 'personalized-apparel' %}Free shipping to the US and Canada{% elsif mk_ca %}Free shipping in Canada on orders over CA$90{% else %}Free US shipping on orders over $35{% endif %}</li>
+  </ul>
+</div>
+{%- endif -%}
+<style>
+  .mk-pdp { margin: 18px 0 4px; padding: 20px 22px; border-radius: 18px; background: #F5F5F7; border: 0; font-size: 14px; line-height: 1.55; }
+  .mk-pdp p { margin: 0 0 8px; }
+  .mk-pdp small { color: #6E6E73; }
+  .mk-pdp__clock { font-weight: 700; color: #1F5C43; font-variant-numeric: tabular-nums; }
+  .mk-pdp__list { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid #D2D2D7; display: grid; gap: 8px; }
+  .mk-pdp__list li { position: relative; padding-left: 16px; }
+  .mk-pdp__list li::before { content: ''; position: absolute; left: 0; top: .7em; width: 6px; height: 6px; border-radius: 50%; top: .55em; background: #1F5C43; }
+  .mk-leave { border: 0; border-radius: 18px; padding: 22px; max-width: 360px; font-size: 15px; line-height: 1.5; }
+  .mk-leave::backdrop { background: rgba(0,0,0,.45); }
+  .mk-leave div { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  /* personalized items must go through the preview: hide express checkout buttons on product pages */
+  .product-details .accelerated-checkout-block { display: none !important; }
+</style>
+<script>
+  (() => {
+    const box = document.currentScript.previousElementSibling.previousElementSibling;
+    const end = Date.parse(box.dataset.cutoff), clock = box.querySelector('.mk-pdp__clock'), line = box.querySelector('.mk-pdp__deadline');
+    const pad = (n) => String(n).padStart(2, '0');
+    function tick() {
+      if (!clock) return; // printable PDF listings have no shipping countdown
+      const ms = end - Date.now();
+      if (ms <= 0) {
+        line.innerHTML = box.dataset.book === 'true'
+          ? 'Too late to ship the printed book? <strong><a href="' + box.dataset.pdfUrl + '">Get the printable PDF</a>: it arrives in seconds.</strong>'
+          : 'Missed the shipping cutoff? <strong>Our e-gift card arrives instantly.</strong>';
+        return;
+      }
+      const s = Math.floor(ms / 1000), d = Math.floor(s / 86400);
+      clock.textContent = (d ? d + 'd ' : '') + pad(Math.floor(s % 86400 / 3600)) + 'h ' + pad(Math.floor(s % 3600 / 60)) + 'm';
+      setTimeout(tick, 30000);
+    }
+    tick();
+    // a personalized preview costs us an AI render: if it isn't in the cart yet, ask before the shopper leaves the page
+    const dlg = document.createElement('dialog'); dlg.className = 'mk-leave';
+    dlg.innerHTML = '<p><strong>Your personalized design isn\'t in your cart yet.</strong><br>Add it now so you don\'t lose it, then keep shopping.</p><div><button type="button" class="button mk-leave__add">Add to cart</button><button type="button" class="button button-secondary mk-leave__go">Leave anyway</button></div>';
+    document.body.append(dlg);
+    let to = '';
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!window.mkUnsaved || !a || a.target === '_blank' || a.getAttribute('href').startsWith('#') || e.metaKey || e.ctrlKey) return;
+      e.preventDefault(); to = a.href; dlg.showModal();
+    }, true);
+    dlg.querySelector('.mk-leave__go').onclick = () => { window.mkUnsaved = false; location.href = to; };
+    dlg.querySelector('.mk-leave__add').onclick = () => { dlg.close(); const f = document.querySelector('form[data-type="add-to-cart-form"]'); if (f) f.requestSubmit(f.querySelector('[type="submit"]') || undefined); };
+    addEventListener('beforeunload', (e) => { if (window.mkUnsaved) e.preventDefault(); });
+    // book personalisation widget belongs above the add-to-cart button
+    const w = document.querySelector('.mkb, .mka, .mkc'), bb = document.querySelector('.buy-buttons-block');
+    if (w && bb) bb.before(w);
+  })();
+</script>
+{% render 'mk-set', product: product %}
